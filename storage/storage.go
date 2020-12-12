@@ -38,3 +38,9 @@ func CreateDB(filename string) *Store {
 func (store *Store) SaveMeasurement(measurement SpeedMeasurement) {
 	store.Create(&measurement)
 }
+
+func (store *Store) GetMeasurements() []SpeedMeasurement {
+	var measurements []SpeedMeasurement
+	store.Find(&measurements)
+	return measurements
+}
