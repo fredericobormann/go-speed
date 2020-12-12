@@ -16,7 +16,7 @@ func main() {
 
 	scheduler := gocron.NewScheduler(time.UTC)
 
-	_, err := scheduler.Every(1).Minutes().Do(measureSpeed)
+	_, err := scheduler.Every(30).Minutes().Do(measureSpeed)
 	if err != nil {
 		log.Fatalf("Could not create task: %v", err)
 	}
