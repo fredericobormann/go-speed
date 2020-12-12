@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/fredericobormann/go-speed/storage"
 	"github.com/gin-gonic/gin"
@@ -8,8 +9,10 @@ import (
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"
+	draw "gonum.org/v1/plot/vg/draw"
 	"image/color"
 	"log"
+	"os/exec"
 	"strconv"
 	"time"
 )
@@ -37,7 +40,7 @@ func main() {
 
 // measureSpeed runs a speedtest-cli command and prints its results
 func measureSpeed() {
-	/*output, err := exec.Command("speedtest-cli", "--secure", "--json").CombinedOutput()
+	output, err := exec.Command("speedtest-cli", "--secure", "--json").CombinedOutput()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,7 +51,7 @@ func measureSpeed() {
 		log.Fatal(marshalErr)
 	}
 	log.Printf("%+v\n", structurizedMeasurement)
-	store.SaveMeasurement(structurizedMeasurement)*/
+	store.SaveMeasurement(structurizedMeasurement)
 
 	refreshGraph()
 }
@@ -70,23 +73,44 @@ func refreshGraph() {
 
 	measurements := store.GetMeasurements()
 
-	pts := make(plotter.XYs, len(measurements))
+	ptsDownload := make(plotter.XYs, len(measurements))
+	ptsUpload := make(plotter.XYs, len(measurements))
 	for i, m := range measurements {
-		pts[i].X = float64(m.Timestamp.Unix())
-		pts[i].Y = m.Download
+		ptsDownload[i].X = float64(m.Timestamp.Unix())
+		ptsDownload[i].Y = m.Download
+		ptsUpload[i].X = float64(m.Timestamp.Unix())
+		ptsUpload[i].Y = m.Upload
 	}
 
-	_, scatter, err := plotter.NewLinePoints(pts)
+	_, scatterDownload, err := plotter.NewLinePoints(ptsDownload)
 	if err != nil {
 		log.Fatal(err)
 	}
-	scatter.Color = color.RGBA{
-		R: 0,
-		G: 255,
-		B: 255,
+	scatterDownload.Color = color.RGBA{
+		R: 255,
+		G: 0,
+		B: 0,
+		A: 255,
 	}
+	scatterDownload.GlyphStyle.Shape = draw.CrossGlyph{}
+	scatterDownload.GlyphStyle.Radius = 5
 
-	p.Add(scatter)
+	_, scatterUpload, err := plotter.NewLinePoints(ptsUpload)
+	if err != nil {
+		log.Fatal(err)
+	}
+	scatterUpload.Color = color.RGBA{
+		R: 0,
+		G: 136,
+		B: 0,
+		A: 255,
+	}
+	scatterUpload.GlyphStyle.Shape = draw.CrossGlyph{}
+	scatterUpload.GlyphStyle.Radius = 5
+
+	p.Add(scatterDownload, scatterUpload)
+	p.Legend.Add("Download", scatterDownload)
+	p.Legend.Add("Upload", scatterUpload)
 
 	if err := p.Save(40*vg.Centimeter, 24*vg.Centimeter, "graph.png"); err != nil {
 		log.Fatalf("Saving graph failed: %v\n", err)
